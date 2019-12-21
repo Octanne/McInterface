@@ -18,8 +18,9 @@ if(!($_SESSION["isLogin"] == false && $_SESSION['levelAuthorize'] >= $serverLeve
 	$hostPing = $host;
 	$portPing = $port;
 	$pingServ = new MinecraftPing($host, $port);	
-	
+	$statutServ = $pingServ->getStatut();
 	$connectionSSH = ssh2_connect($sshAddress, 22);
+
 	if (!$connectionSSH) {
 		$response['status'] = "connexionError";
 	}else{
@@ -59,13 +60,17 @@ if(!($_SESSION["isLogin"] == false && $_SESSION['levelAuthorize'] >= $serverLeve
 				$response['status'] = "success";
 				$response['message'] = "Le serveur $serverName s'est correctement arrété !";
 			}else if($action == "command"){
-				$serverName = strtolower ($serverName);
-				$commandBegin = "screen -S $serverName -X stuff \"";
-				$commandFinal = $commandBegin . $command . '\r"';
-				ssh2_exec($connectionSSH, "$commandFinal");
-				fwrite ($stream, "exit" . PHP_EOL );
-				$response['status'] = "success";
-				$response['message'] = "Commande '$command' transmise...";
+				if (!$statutServ) {
+					$response['status'] = "offlineError";
+				}else{
+					$serverName = strtolower ($serverName);
+					$commandBegin = "screen -S $serverName -X stuff \"";
+					$commandFinal = $commandBegin . $command . '\r"';
+					ssh2_exec($connectionSSH, "$commandFinal");
+					fwrite ($stream, "exit" . PHP_EOL );
+					$response['status'] = "success";
+					$response['message'] = "La commande '$command' a été exécutée...";	
+				}
 			}
 			else{
 				$response['status'] = "commandError";
