@@ -81,7 +81,7 @@ function sendCommand(server, command){
           alertWarning("Authentification au serveur impossible (check password & username)");
         }
         else if(json.status == 'offlineError'){
-          alertDanger("Le serveur "+ server + "est hors-ligne (démarrer le d'abord)");
+          alertDanger("Le serveur "+ server + " est hors-ligne (démarrer le d'abord)");
         }
         else{
           alertDanger("Erreur Inconnue..."); 
