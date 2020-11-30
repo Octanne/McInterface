@@ -1,20 +1,18 @@
 <?php
-$directoryPath = "/home/obeprod/Minecraft";
-$sshAddress = 'vps.obeprod.fr';
-$sshUser = 'obeprod';
-$sshPassword = 'MjgxYTU1ZTI3MzI0';
+$directoryPath = "/our/path/Minecraft";
+$sshAddress = 'your.ip.or.domain.com';
+$sshUser = 'username';
+$sshPassword = 'changeme';
 $serverList = [
-    0 => "FortBoyard",
-    1 => "Tournage",
-    2 => "Build",
-    3 => "Mods"
+    0 => "Exemple",
+    1 => "Exemple2"
 ];
 $userList = [
-    "Obe" => "9afff5239d5411c7cfab8ec2e379bebb",
-    "Octanne" => "79b973dfe5d1faca28c9b6374defa629"
+    "Admin" => "password_in_md5",
+    "User" => "password_in_md5"
 ];
 $userPermLvl = [
-    "Obe" => 1000,
-    "Octanne" => 1000
+    "Admin" => 1000,
+    "User" => 10
 ];
 ?>
