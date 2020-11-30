@@ -92,19 +92,19 @@ if(isset($_SESSION['isLogin']) && $_SESSION['isLogin'] == true){
             ?>
           </div>
         <?php } else{ ?>
-          <div class="card box-shadow" style="text-align: center; height: auto; width: 15%; margin-top: 15px; margin-left: 40%; margin-right: 0%;">
+          <div class="card box-shadow" style="font-size:1.5em; text-align: center; margin: auto; width: max-content; height: max-content;">
             <div class="card-header">
               <h2 class="my-0 font-weight-normal">Connexion</h2>
             </div>
-            <div class="card-body" style="text-align: left;">     
+            <div class="card-body" style="text-align: center; font-size:1em;">     
               <?php if(isset($_GET["log"]) && $_GET["log"] == 'denied'){ ?>
-              <div class="alert alert-danger">Identifiant incorrect</div>
+              <div class="alert alert-danger" style="font-size:0.8em; padding:0.5em;">Identifiant incorrect</div>
               <?php } ?>
               <?php if(isset($_GET["log"]) && $_GET["log"] == 'restricted'){ ?>
-              <div class="alert alert-danger">Accès restreint</div>
+              <div class="alert alert-danger" style="font-size:0.8em; padding:0.5em;">Accès restreint</div>
               <?php } ?>
               <?php if(isset($_GET["log"]) && $_GET["log"] == 'deconnect'){ ?>
-              <div class="alert alert-info">Déconnexion réussi</div>
+              <div class="alert alert-info" style="font-size:0.8em; padding:0.5em;">Déconnexion réussi</div>
               <?php } ?>
               <form action="login.php" method="post">
               <input style="width: 100%; height: 40px; padding-left: 5px;" class="card box-shadow" type="text" placeholder="Login" name="login"/>
