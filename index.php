@@ -57,7 +57,7 @@ if (isset($_SESSION['isLogin']) && $_SESSION['isLogin']) {
 
             $cardModel = <<<HTML
             <div class="col-xl-3 col-lg-4 col-md-12 mb-3">
-                <div class="card box-shadow text-center h-100">
+                <div class="card box-shadow text-center" style="height: 24em;">
                     <div class="card-header">
                         <h4 class="my-0 font-weight-normal">$name</h4>
                     </div>
@@ -95,15 +95,15 @@ if (isset($_SESSION['isLogin']) && $_SESSION['isLogin']) {
     if (isset($_GET["log"])) {
         if ($_GET["log"] == 'denied') {
             $logAlert = <<<HTML
-                <div class="alert alert-warning" style="font-size:0.8em; padding:0.5em;">Identifiant incorrect !</div>
+                <div class="alert alert-warning p-2 m-0 mb-1 text-center h4">Identifiant incorrect !</div>
             HTML;
         } else if ($_GET["log"] == 'restricted') {
             $logAlert = <<<HTML
-                <div class="alert alert-danger" style="font-size:0.8em; padding:0.5em;">Accès non autorisé !</div>
+                <div class="alert alert-danger p-2 m-0 mb-1 text-center h4">Accès non autorisé !</div>
             HTML;
         } else if ($_GET["log"] == 'disconnect') {
             $logAlert = <<<HTML
-                <div class="alert alert-info" style="font-size:0.8em; padding:0.5em;">Déconnexion effectuée !</div>
+                <div class="alert alert-info p-2 m-0 mb-1 text-center h4">Déconnexion effectuée !</div>
             HTML;
         }
     } else {
