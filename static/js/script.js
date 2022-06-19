@@ -24,7 +24,7 @@ function btnStop(serverName){
 
 function alertMsg(msg, cls){
     $("#alertMessage").fadeOut("slow", function(){
-        $("#alertMessage").attr("class", "alert alert-"+cls);
+        $("#alertMessage").attr("class", "d-flex justify-content-center align-items-center alert alert-"+cls);
         $("#alertMessage").html(msg);
         $("#alertMessage").fadeIn("slow", function(){});
     });
@@ -36,44 +36,44 @@ function sendOrder(server, order){
       if(json.status){
         if(json.status == 'success'){
             alertMsg(json.message, "info");
-            $('#ControlServ'+server).load('rcon/controlserv.php?server='+server, function() {
+            $('#controlServ'+server).load('rcon/controlserv.php?mode=home&server='+server, function() {
             /// can add another function here
             });
         }
         else if(json.status == 'commandError'){
           alertMsg("L'instruction n'a pas été reconnue par le système...", "warning");
-          $('#ControlServ'+server).load('rcon/controlserv.php?server='+server, function() {
+          $('#controlServ'+server).load('rcon/controlserv.php?mode=home&server='+server, function() {
           /// can add another function here
           });          
         }
         else if(json.status == 'connexionError'){
           alertMsg("La connexion au serveur n'a pu être établie (check PORT & IP address)", "warning");
-          $('#ControlServ'+server).load('rcon/controlserv.php?server='+server, function() {
+          $('#controlServ'+server).load('rcon/controlserv.php?mode=home&server='+server, function() {
           /// can add another function here
           });
         }
         else if(json.status == 'authError'){
           alertMsg("Authentification au serveur impossible (check password & username)", "warning");
-          $('#ControlServ'+server).load('rcon/controlserv.php?server='+server, function() {
+          $('#controlServ'+server).load('rcon/controlserv.php?mode=home&server='+server, function() {
           /// can add another function here
           });
         }
         else{
           alertMsg("Erreur Inconnue...", "danger");
-          $('#ControlServ'+server).load('rcon/controlserv.php?server='+server, function() {
+          $('#controlServ'+server).load('rcon/controlserv.php?mode=home&server='+server, function() {
           /// can add another function here
           });
         }
       }
       else{
         alertMsg("Aucun statut renvoyé...", "danger");
-        $('#ControlServ'+server).load('rcon/controlserv.php?server='+server, function() {
+        $('#controlServ'+server).load('rcon/controlserv.php?mode=home&server='+server, function() {
         /// can add another function here
         });
       }
     }).fail(function() {
         alertMsg("RCON erreur post FAILED !", "danger");
-        $('#ControlServ'+server).load('rcon/controlserv.php?server='+server, function() {
+        $('#controlServ'+server).load('rcon/controlserv.php?mode=home&server='+server, function() {
         /// can add another function here
         });
     });

@@ -41,8 +41,8 @@ $(document).ready(function(){
 
 function alertMsg(msg, cls){
   $("#alertMessage").fadeOut("slow", function(){
-    $("#alertMessage").attr("class", "alert alert-"+cls);
-    $("#alertMessage").html(msg);
+    $("#alertMessage").attr("class", "d-flex justify-content-center align-items-center alert alert-"+cls);
+    $("#alertMessage").html('<span>'+ msg + '</span>');
     $("#alertMessage").fadeIn("slow", function(){});
   });
 }
@@ -57,6 +57,73 @@ function alertWarning(msg){
 }
 function alertDanger(msg){
   alertMsg(msg, "danger");
+}
+
+function btnBoot(serverName){
+  document.getElementById("btnBoot").disabled = true;
+  alertMsg("Démarage du serveur "+serverName+" en cours...", "info");
+  sendOrder(serverName, "boot");
+}
+function btnReboot(serverName){
+  document.getElementById("btnReboot").disabled = true;
+  document.getElementById("btnStop").disabled = true;
+  alertMsg("Redémarage du serveur "+serverName+" en cours...", "info");
+  sendOrder(serverName, "reboot");
+}
+function btnStop(serverName){
+  document.getElementById("btnReboot").disabled = true;
+  document.getElementById("btnStop").disabled = true;
+  alertMsg("Arrêt du serveur "+serverName+" en cours...", "info");
+  sendOrder(serverName, "stop");
+}
+
+function sendOrder(server, order){
+  $.post("rcon/action.php", { odr:order, srv:server })
+      .done(function(json){
+        if(json.status){
+          if(json.status == 'success'){
+            alertMsg(json.message, "info");
+            $('#controlServ').load('rcon/controlserv.php?mode=console&server='+server, function() {
+              /// can add another function here
+            });
+          }
+          else if(json.status == 'commandError'){
+            alertMsg("L'instruction n'a pas été reconnue par le système...", "warning");
+            $('#controlServ').load('rcon/controlserv.php?mode=console&server='+server, function() {
+              /// can add another function here
+            });
+          }
+          else if(json.status == 'connexionError'){
+            alertMsg("La connexion au serveur n'a pu être établie (check PORT & IP address)", "warning");
+            $('#controlServ').load('rcon/controlserv.php?mode=console&server='+server, function() {
+              /// can add another function here
+            });
+          }
+          else if(json.status == 'authError'){
+            alertMsg("Authentification au serveur impossible (check password & username)", "warning");
+            $('#controlServ').load('rcon/controlserv.php?mode=console&server='+server, function() {
+              /// can add another function here
+            });
+          }
+          else{
+            alertMsg("Erreur Inconnue...", "danger");
+            $('#controlServ').load('rcon/controlserv.php?mode=console&server='+server, function() {
+              /// can add another function here
+            });
+          }
+        }
+        else{
+          alertMsg("Aucun statut renvoyé...", "danger");
+          $('#controlServ').load('rcon/controlserv.php?mode=console&server='+server, function() {
+            /// can add another function here
+          });
+        }
+      }).fail(function() {
+    alertMsg("RCON erreur post FAILED !", "danger");
+    $('#controlServ').load('rcon/controlserv.php?mode=console&server='+server, function() {
+      /// can add another function here
+    });
+  });
 }
 
 function sendCommand(server, command){

@@ -1,136 +1,183 @@
 <?php
 session_start();
-if(isset($_SESSION['isLogin']) && $_SESSION['isLogin'] == true){
-  require 'rcon/MinecraftPing.php';
-  require 'rcon/settings.php'; 
+
+
+if (isset($_SESSION['isLogin']) && $_SESSION['isLogin']) {
+    require_once 'rcon/MinecraftPing.php';
+    $serverList = [];
+    require_once 'rcon/settings.php';
+
+    $menuActionBar = <<<HTML
+        <h3 class="panel-title pull-left">
+            <span style="line-height: 1.17em;" class="glyphicon glyphicon-tasks"></span> Les Serveurs
+        </h3>
+        <div class="btn-group btn-group-xs pull-right">
+            <a style="size: 12px; padding-top: 0.25em;" class="btn btn-default" href="disconnect.php">
+                <span class="glyphicon glyphicon-user"></span>
+                <span class="hidden-xs"> Déconnexion</span>
+            </a>
+        </div>
+    HTML;
+
+    $generateServCards = "";
+    foreach ($serverList as $name) {
+        $port = 0;
+        $host = "";
+        $serverLevelAuthorize = 0;
+        require "rcon/server/$name.php";
+
+        if ($_SESSION['levelAuthorize'] >= $serverLevelAuthorize) {
+            $pingServ = new MinecraftPing($host, $port);
+            ini_set('display_errors', 0);
+            $statusServ = $pingServ->getStatut();
+            if ($statusServ) {
+                $servButtons = <<<HTML
+                <ul class="list-unstyled mt-3 mb-4">
+                    <li> </li>
+                </ul>                  
+                <button type="button" onclick="btnConsole('$name')" class="btn btn-lg btn-block btn-primary" id="btn$name">Console</button>
+                <ul class="list-unstyled mt-3 mb-4">
+                    <li> </li>
+                </ul>
+                <button type="button" onclick="btnReboot('$name')" name="$name" class="btn btn-lg btn-block btn-success" id="btnReboot$name">Redémarer</button>
+                <button type="button" onclick="btnStop('$name')" class="btn btn-lg btn-block btn-danger" id="btnStop$name">Arrêter</button>
+                HTML;
+            } else {
+                $servButtons = <<<HTML
+                <ul class="list-unstyled mt-3 mb-4">
+                    <li> </li>
+                </ul> 
+                <button type="button" onclick="btnConsole('$name')" class="btn btn-lg btn-block btn-primary" id="btn$name">Console</button>
+                <ul class="list-unstyled mt-3 mb-4">
+                    <li> </li>
+                </ul>         
+                <button type="button" onclick="btnBoot('$name')" class="btn btn-lg btn-block btn-success" id="btnBoot$name">Démarrer</button>
+                HTML;
+            }
+
+            $cardModel = <<<HTML
+            <div class="col-xl-3 col-lg-4 col-md-12 mb-3">
+                <div class="card box-shadow text-center h-100">
+                    <div class="card-header">
+                        <h4 class="my-0 font-weight-normal">$name</h4>
+                    </div>
+                    <div class="card-body d-flex flex-column justify-content-center">
+                        <div id="controlServ$name">  
+                            <h1 class="card-title pricing-card-title">Actions</h1>
+                            $servButtons               
+                        </div>
+                    </div>
+                </div>
+            </div>
+            HTML;
+
+            $generateServCards .= <<<HTML
+            $cardModel
+            HTML;
+        }
+    }
+
+    $bodyContents = <<<HTML
+    <div class="panel-body row justify-content-start">
+        $generateServCards
+    </div>
+    HTML;
+} else {
+    $menuActionBar = <<<HTML
+        <h3 class="panel-title pull-left">
+            <span style="line-height: 1.17em;" class="glyphicon glyphicon-console"></span> Connectez-vous pour accéder au serveur...
+        </h3>
+        <div class="btn-group btn-group-xs pull-right">
+            
+        </div>
+    HTML;
+
+    if (isset($_GET["log"])) {
+        if ($_GET["log"] == 'denied') {
+            $logAlert = <<<HTML
+                <div class="alert alert-warning" style="font-size:0.8em; padding:0.5em;">Identifiant incorrect !</div>
+            HTML;
+        } else if ($_GET["log"] == 'restricted') {
+            $logAlert = <<<HTML
+                <div class="alert alert-danger" style="font-size:0.8em; padding:0.5em;">Accès non autorisé !</div>
+            HTML;
+        } else if ($_GET["log"] == 'disconnect') {
+            $logAlert = <<<HTML
+                <div class="alert alert-info" style="font-size:0.8em; padding:0.5em;">Déconnexion effectuée !</div>
+            HTML;
+        }
+    } else {
+        $logAlert = "";
+    }
+
+    $bodyContents = <<<HTML
+    <div class="panel-body row justify-content-center align-items-center">
+       <div class="col-3">
+            <div class="card mb-3 box-shadow">
+                <div class="card-header text-center">
+                   <h3 class="my-0 font-weight-normal">Connexion</h3>
+                </div>
+                <div id="loginCard" class="card-body">
+                    $logAlert
+                    <form action="login.php" method="post" class="form-group-lg">
+                        <div class="row p-1">
+                            <!--<label class="col-4 col-form-label border">Identifiant</label>-->
+                            <input class="col card box-shadow form-control" type="text" placeholder="Identifiant" name="login"/>
+                        </div>
+                        <div class="row p-1">
+                            <!--<label class="col-4 col-form-label">Mot de passe</label>-->
+                            <input class="col card box-shadow form-control" type="password" placeholder="Mode de passe..." name="password"/>
+                        </div>
+                        <div class="row p-1">
+                            <input value="Connexion" type="submit" class="col btn btn-lg btn-secondary" id="login">
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>                        
+    </div>
+    HTML;
 }
-?>
+
+$html = <<<HTML
 <!DOCTYPE HTML>
 <html>
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-    <title>Gestionnaire RCON</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
-    <link rel="stylesheet" type="text/css" href="static/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="static/css/pricing.css">
-    <link rel="stylesheet" type="text/css" href="static/css/style.css">
-    <script type="text/javascript" src="static/js/jquery-1.12.0.min.js"></script>
-    <script type="text/javascript" src="static/js/jquery-migrate-1.2.1.min.js"></script>
-    <script type="text/javascript" src="static/js/jquery-ui-1.12.0.min.js"></script>
-    <script type="text/javascript" src="static/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="static/js/script.js"></script>
-    
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="shortcut icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA+5pVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1wTU06T3JpZ2luYWxEb2N1bWVudElEPSJ1dWlkOjY1RTYzOTA2ODZDRjExREJBNkUyRDg4N0NFQUNCNDA3IiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOkI0N0JDRjhEMDY5MTExRTI5OUZEQTZGODg4RDc1ODdCIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOkI0N0JDRjhDMDY5MTExRTI5OUZEQTZGODg4RDc1ODdCIiB4bXA6Q3JlYXRvclRvb2w9IkFkb2JlIFBob3Rvc2hvcCBDUzYgKE1hY2ludG9zaCkiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDowMTgwMTE3NDA3MjA2ODExODA4M0ZFMkJBM0M1RUU2NSIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDowNjgwMTE3NDA3MjA2ODExODA4M0U3NkRBMDNEMDVDMSIvPiA8ZGM6dGl0bGU+IDxyZGY6QWx0PiA8cmRmOmxpIHhtbDpsYW5nPSJ4LWRlZmF1bHQiPmdseXBoaWNvbnM8L3JkZjpsaT4gPC9yZGY6QWx0PiA8L2RjOnRpdGxlPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PgFdWUIAAAExSURBVHjaxFUBEcIwDFxRMAmVMAnBQSVMAhImAQlIQAJzUBzgAByU9C7jspCsZdc7cvfHyNbPLcn/upRSVwOMiEiEW+05R4c3wznX48+T5/Cc6yrioJBNCBBpUJ4D+R8xflUQbbiwNuRrjzghHiy/IOcy4YC4svy44mTkk0KyF2Hh5S26de0i1rRoLya1RVTANyjQc065RcF45TvimFeT1vNIOS3C1xblqnRD25ZoCK8X4vs8T1z9orFYeGXYUHconI2OLswoKRbFlX5S8i9BFlK0irlAAhu3Q4F/5v0Ea8hy9diQrefB0sFoDWuRPxGPBvnKJrQCQ2uhyQLXBgXOlptCQzcdNKvwDd3UW27KhzyxgW5aQm5L8YMj5O8rLAGUBQn//+gbfvQS9jzXDuMtwAATXCNvATubRQAAAABJRU5ErkJggg==" />
-</head>
-<body>
-  <div class="container-fluid" id="content">
-    <div style="text-align:center; font-size: 25px;" class="alert alert-info" id="alertMessage">
-      <strong>Gestionnaire Minecraft (RCON)</strong>
-    </div>
-    <div style="margin-top: 15px;" id="consoleRow">
-      <div class="panel panel-default" id="consoleContent">
-        <div class="panel-heading">
-          <h3 class="panel-title pull-left"><span class="glyphicon glyphicon-console"></span> Les Serveurs</h3>
-          <div class="btn-group btn-group-xs pull-right">
-            <?php if(isset($_SESSION['isLogin']) && $_SESSION['isLogin'] == true){ ?>
-            <a style="font-size: 12px; size: 12px;" class="btn btn-default" href="disconnect.php"><span class="glyphicon glyphicon-user"></span><span class="hidden-xs"> Déconnexion</span></a>
-            <?php } ?>
-          </div>
-        </div>
-        <div class="panel-body" <?php if(!isset($_SESSION['isLogin']) || $_SESSION['isLogin'] == false){ ?> style="box-align: center;" <?php } ?>>
-        <?php
-        if(isset($_SESSION['isLogin']) && $_SESSION['isLogin'] == true){ ?>
-          <div class="card-deck mb-4 text-center">
-            <?php
-            $servNumber = -1;
-            foreach ($serverList as $name) {
-              $servNumber+=1;
-              if($servNumber % 4 == 0){ ?>
-                </div>
-                <div class="card-deck mb-4 text-center">
-              <?php }
-              require "rcon/server/$name.php";
-              $hostPing = $host;
-              $portPing = $port;
-              
-              $pingServ = new MinecraftPing($hostPing, $portPing);
-              ini_set('display_errors', 0);
-              $statutServ = $pingServ->getStatut();
-              
-              
-              if($_SESSION['levelAuthorize'] >= $serverLevelAuthorize){ ?>
-                <div class="card mb-3 box-shadow">
-                <div class="card-header">
-                   <h4 class="my-0 font-weight-normal"><?php echo $name ?></h4>
-                </div>
-                <div id="ControlServ<?php echo $name?>" class="card-body">
-                   <h1 class="card-title pricing-card-title">Accéder à</h1>
-                  <?php
-                  if($statutServ){ ?>
-                    <ul class="list-unstyled mt-3 mb-4">
-                      <li> </li>
-                    </ul>                  
-                    <button type="button" onclick="btnConsole('<?php echo $name ?>')" class="btn btn-lg btn-block btn-primary" id="btn<?php echo $name ?>">Console</button>
-                    <ul class="list-unstyled mt-3 mb-4">
-                      <li> </li>
-                    </ul>
-                    <button type="button" onclick="btnReboot('<?php echo $name ?>')" name="<?php echo $name ?>" class="btn btn-lg btn-block btn-success" id="btnReboot<?php echo $name ?>">Redémarer</button>
-                    <button type="button" onclick="btnStop('<?php echo $name ?>')" class="btn btn-lg btn-block btn-danger" id="btnStop<?php echo $name ?>">Arrêter</button>
-                  <?php } else{ ?>
-                    <div style="padding-top: 9%;">
-                      <button type="button" onclick="btnConsole('<?php echo $name ?>')" class="btn btn-lg btn-block btn-primary" id="btn<?php echo $name ?>">Console</button>
-                      <ul class="list-unstyled mt-3 mb-4"><li> </li></ul>         
-                      <button type="button" onclick="btnBoot('<?php echo $name ?>')" class="btn btn-lg btn-block btn-success" id="btnBoot<?php echo $name ?>">Démarrer</button>                      
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        <title>Gestionnaire des serveurs</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" integrity="sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB" crossorigin="anonymous">
+        <link rel="stylesheet" type="text/css" href="static/css/bootstrap.min.css">
+        <link rel="stylesheet" type="text/css" href="static/css/pricing.css">
+        <link rel="stylesheet" type="text/css" href="static/css/style.css">
+        
+        <script type="text/javascript" src="static/js/jquery-1.12.0.min.js"></script>
+        <script type="text/javascript" src="static/js/jquery-migrate-1.2.1.min.js"></script>
+        <script type="text/javascript" src="static/js/jquery-ui-1.12.0.min.js"></script>
+        <script type="text/javascript" src="static/js/bootstrap.min.js"></script>
+        <script type="text/javascript" src="static/js/script.js"></script>
+        
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="shortcut icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA+5pVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1wTU06T3JpZ2luYWxEb2N1bWVudElEPSJ1dWlkOjY1RTYzOTA2ODZDRjExREJBNkUyRDg4N0NFQUNCNDA3IiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOkI0N0JDRjhEMDY5MTExRTI5OUZEQTZGODg4RDc1ODdCIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOkI0N0JDRjhDMDY5MTExRTI5OUZEQTZGODg4RDc1ODdCIiB4bXA6Q3JlYXRvclRvb2w9IkFkb2JlIFBob3Rvc2hvcCBDUzYgKE1hY2ludG9zaCkiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDowMTgwMTE3NDA3MjA2ODExODA4M0ZFMkJBM0M1RUU2NSIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDowNjgwMTE3NDA3MjA2ODExODA4M0U3NkRBMDNEMDVDMSIvPiA8ZGM6dGl0bGU+IDxyZGY6QWx0PiA8cmRmOmxpIHhtbDpsYW5nPSJ4LWRlZmF1bHQiPmdseXBoaWNvbnM8L3JkZjpsaT4gPC9yZGY6QWx0PiA8L2RjOnRpdGxlPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PgFdWUIAAAExSURBVHjaxFUBEcIwDFxRMAmVMAnBQSVMAhImAQlIQAJzUBzgAByU9C7jspCsZdc7cvfHyNbPLcn/upRSVwOMiEiEW+05R4c3wznX48+T5/Cc6yrioJBNCBBpUJ4D+R8xflUQbbiwNuRrjzghHiy/IOcy4YC4svy44mTkk0KyF2Hh5S26de0i1rRoLya1RVTANyjQc065RcF45TvimFeT1vNIOS3C1xblqnRD25ZoCK8X4vs8T1z9orFYeGXYUHconI2OLswoKRbFlX5S8i9BFlK0irlAAhu3Q4F/5v0Ea8hy9diQrefB0sFoDWuRPxGPBvnKJrQCQ2uhyQLXBgXOlptCQzcdNKvwDd3UW27KhzyxgW5aQm5L8YMj5O8rLAGUBQn//+gbfvQS9jzXDuMtwAATXCNvATubRQAAAABJRU5ErkJggg==" />
+    </head>
+    <body>
+        <div class="container-fluid" id="content">
+            <div style="font-size: 25px; line-height: 1em;" class="alert alert-info d-flex 
+            justify-content-center align-items-center" id="alertMessage">
+                <strong>Gestionnaire des serveurs (ObeProd)</strong>
+            </div>
+            <div id="consoleRow">
+                <div class="panel panel-default" id="consoleContent">
+                    <div class="panel-heading">
+                        $menuActionBar
                     </div>
-                 <?php } ?>
-                 </div>
+                    $bodyContents
                 </div>
-              <?php }
-              ini_set('display_errors', 1);
-            }
-            ?>
-          </div>
-        <?php } else{ ?>
-          <div class="card box-shadow" style="font-size:1.5em; text-align: center; margin: auto; width: max-content; height: max-content;">
-            <div class="card-header">
-              <h2 class="my-0 font-weight-normal">Connexion</h2>
             </div>
-            <div class="card-body" style="text-align: center; font-size:1em;">     
-              <?php if(isset($_GET["log"]) && $_GET["log"] == 'denied'){ ?>
-              <div class="alert alert-danger" style="font-size:0.8em; padding:0.5em;">Identifiant incorrect</div>
-              <?php } ?>
-              <?php if(isset($_GET["log"]) && $_GET["log"] == 'restricted'){ ?>
-              <div class="alert alert-danger" style="font-size:0.8em; padding:0.5em;">Accès restreint</div>
-              <?php } ?>
-              <?php if(isset($_GET["log"]) && $_GET["log"] == 'deconnect'){ ?>
-              <div class="alert alert-info" style="font-size:0.8em; padding:0.5em;">Déconnexion réussi</div>
-              <?php } ?>
-              <form action="login.php" method="post">
-              <input style="width: 100%; height: 40px; padding-left: 5px;" class="card box-shadow" type="text" placeholder="Login" name="login"/>
-              <input style="width: 100%; height: 40px; padding-left: 5px; margin-top: 6px;" class="card box-shadow" type="password" placeholder="Password" name="password"/>
-              <input value="Connexion" type="submit" style="color: black; width: 100%; height: 40px; margin-top: 15px; padding: 2px;" class="btn btn-lg btn-block btn-primary" id="login">
-              </form>
-            </div>
-          </div>
-        <?php } ?>
         </div>
-      </div>
-      </div>
-    </div>
-  </div>
-</body>
+    </body>
 </html>
-<?php
-if(isset($_SESSION["action"]) && $_SESSION["action"] != ""){
-  sleep(1);
-  $_SESSION["action"] = "";
-  ?>
-  <script>
-    $("#alertMessage").fadeOut("slow", function(){
-        $("#alertMessage").attr("class", "alert alert-info");
-        $("#alertMessage").html("<strong>Gestionnaire Minecraft (RCON)</strong>");
-        $("#alertMessage").fadeIn("slow", function(){});
-    });
-  </script>
-<?php } ?>
+HTML;
+
+echo $html;
+
+

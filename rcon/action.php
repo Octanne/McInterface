@@ -9,9 +9,16 @@ if(isset($_POST["cmd"])){
 }
 $response = array();
 
-require "settings.php";
-require 'MinecraftPing.php';
-require "server/$serverName.php";
+$sshPassword = "";
+$sshUser = "";
+$sshAddress = "";
+$directoryPath = "";
+include_once "settings.php";
+include_once 'MinecraftPing.php';
+$port = 0;
+$host = "";
+$serverLevelAuthorize = 0;
+include_once "server/$serverName.php";
 
 if(!($_SESSION["isLogin"] == false && $_SESSION['levelAuthorize'] >= $serverLevelAuthorize)){
 	ini_set('display_errors', 1);
@@ -36,10 +43,9 @@ if(!($_SESSION["isLogin"] == false && $_SESSION['levelAuthorize'] >= $serverLeve
 		
 			//A Revoir LE REBOOT
 			if($action == "reboot"){
-				fwrite ($stream, "cd $directoryPath/$serverName && ./boot.sh stop" . PHP_EOL );
+				fwrite ($stream, "cd $directoryPath/$serverName && ./boot.sh irestart" . PHP_EOL );
 				sleep(2);
-				fwrite ($stream, "cd $directoryPath/$serverName && ./boot.sh start" . PHP_EOL );
-				while(!$pingServ->getStatut()){
+                while(!$pingServ->getStatut()){
 					sleep(1);
 				}
 				fwrite ($stream, "exit" . PHP_EOL );

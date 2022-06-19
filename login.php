@@ -2,7 +2,8 @@
 session_start();
 $id = $_POST["login"];
 $pass = $_POST["password"];
-$_SESSION['isLogin'] = false;
+$userPermLvl = [];
+
 require 'rcon/settings.php'; 
 
 if(isset($userList[$id]) && $userList[$id] == md5($pass)){
@@ -14,4 +15,3 @@ else{
     $_SESSION['isLogin'] = false;
     header("Location: index.php?log=denied");
 }
-?>
