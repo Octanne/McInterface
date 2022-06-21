@@ -9,9 +9,14 @@ require 'rcon/settings.php';
 if(isset($userList[$id]) && $userList[$id] == md5($pass)){
     $_SESSION['isLogin'] = true;
     $_SESSION['levelAuthorize'] = $userPermLvl[$id];
-    header("Location: index.php");
+    //include 'index.php';
+    //die();
+    header("Location: /");
 }
 else{
     $_SESSION['isLogin'] = false;
-    header("Location: index.php?log=denied");
+    $_GET['log'] = 'denied';
+    //include 'index.php';
+    //die();
+    header("Location: /?log=denied");
 }

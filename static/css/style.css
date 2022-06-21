@@ -4,77 +4,42 @@ html, body {
 
 #content {
   height: 100%;
-  position: relative;
-}
-
-#consoleRow{
-  position: absolute;
-  top: 83px;
-  left: 15px;
-  right: 15px;
-  bottom: 15px;
 }
 
 #alertMessage{
-  position: absolute;
-  top: 15px;
-  left: 15px;
-  right: 15px;
-}
-
-#consoleContent{
-  margin: 0px;
-  padding: 0px;
-  position: absolute;
-  top: 0px;
-  left: 0px;
-  right: 0px;
-  bottom: 49px;
+  font-size: 25px;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  padding: 0.3em;
 }
 
 .panel-heading{
-  position: absolute;
-  top: 0px;
-  left: 0px;
-  right: 0px;
+  padding: 0.65em;
 }
 
 .panel-body{
-  position: absolute;
-  top: 44px;
-  left: 0px;
-  right: 0px;
-  bottom: 0px;
   overflow: auto;
 }
 
 .panel-log{
-  border-top-style: solid;
-  border-top-color: #ddd;
-  border-top-width: 1.2px;
-  position: absolute;
-  top: 0px;
-  left: 0px;
-  right: 0px;
-  bottom: 0px;
-  overflow: auto;
-  padding: 12px;
-  padding-top: 5px;
+  background-color: #888;
+  overflow: scroll;
+  padding: 5px 12px 12px;
   margin-top: 5px;
   font-size: 16px;
 }
 
-.panel-console{
-  border-top-style: solid;
-  border-top-color: #ddd;
-  border-top-width: 1.2px;
-  position: absolute;
-  top: 50%;
-  left: 0px;
-  right: 0px;
-  bottom: 0px;
-  overflow: auto;
-  padding: 15px;
+#consoleRow{
+  overflow: hidden;
+}
+
+#consoleContent{
+  margin-bottom: 0.5em;
+  overflow: hidden;
+}
+
+#consoleCommand{
+  margin-bottom: 0.5em;
 }
 
 .panel-body ul{
@@ -83,11 +48,6 @@ html, body {
 .panel-body ul li .label{
   margin-top: 2px;
   margin-right: -5px;
-}
-
-#consoleCommand{
-  position: absolute;
-  bottom: 0px;
 }
 
 #groupConsole{
@@ -101,6 +61,8 @@ html, body {
 .list-group-item {
   padding: 3px 10px
 }
+
+
 
 .ui-autocomplete {
   position: absolute;
@@ -133,4 +95,24 @@ html, body {
   max-height: 300px;
   overflow-y: auto;
   overflow-x: hidden;
+}
+ul#groupLog > li {
+  list-style-type: none;
+  min-height: 1em;
+  font-family: monospace;
+}
+ul#groupLog > li span.font-weight-bold{font-weight: bold;}
+ul#groupLog > li span.font-weight-lighter{font-weight: lighter;}
+ul#groupLog > li span.font-italic{font-style: italic;}
+ul#groupLog > li span.text-decoration-underlined{text-decoration: underline;}
+ul#groupLog > li span.text-decoration-overlined{text-decoration: line-through;}
+ul#groupLog > li span.text-decoration-underlined.text-decoation-overlined{text-decoration: underline line-through;}
+ul#groupLog > li span.text-magic {
+  color: transparent !important;
+  background-image: linear-gradient(    to left,    violet,    indigo,    blue,    green,    yellow,    orange,    red  );
+  -webkit-background-clip: text;
+  -webkit-background-clip: text;
+  -moz-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }

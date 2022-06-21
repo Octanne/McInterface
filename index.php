@@ -8,11 +8,11 @@ if (isset($_SESSION['isLogin']) && $_SESSION['isLogin']) {
     require_once 'rcon/settings.php';
 
     $menuActionBar = <<<HTML
-        <h3 class="panel-title pull-left">
-            <span style="line-height: 1.17em;" class="glyphicon glyphicon-tasks"></span> Les Serveurs
+        <h3 class="panel-title">
+            <span class="glyphicon glyphicon-tasks"></span> Liste des serveurs
         </h3>
-        <div class="btn-group btn-group-xs pull-right">
-            <a style="size: 12px; padding-top: 0.25em;" class="btn btn-default" href="disconnect.php">
+        <div class="btn-group btn-group-xs">
+            <a style="size: 12px; padding-top: 0.3em;" class="btn btn-default" href="disconnect.php">
                 <span class="glyphicon glyphicon-user"></span>
                 <span class="hidden-xs"> Déconnexion</span>
             </a>
@@ -78,14 +78,14 @@ if (isset($_SESSION['isLogin']) && $_SESSION['isLogin']) {
     }
 
     $bodyContents = <<<HTML
-    <div class="panel-body row justify-content-start">
+    <div class="panel-body row justify-content-start flex-fill">
         $generateServCards
     </div>
     HTML;
 } else {
     $menuActionBar = <<<HTML
         <h3 class="panel-title pull-left">
-            <span style="line-height: 1.17em;" class="glyphicon glyphicon-console"></span> Connectez-vous pour accéder au serveur...
+            <span class="glyphicon glyphicon-console"></span> Connectez-vous pour accéder au serveur...
         </h3>
         <div class="btn-group btn-group-xs pull-right">
             
@@ -95,41 +95,39 @@ if (isset($_SESSION['isLogin']) && $_SESSION['isLogin']) {
     if (isset($_GET["log"])) {
         if ($_GET["log"] == 'denied') {
             $logAlert = <<<HTML
-                <div class="alert alert-warning p-2 m-0 mb-1 text-center h4">Identifiant incorrect !</div>
+                <div class="alert alert-warning p-2 m-0 mb-1 text-center h4"><strong>Identifiant incorrect !</strong></div>
             HTML;
         } else if ($_GET["log"] == 'restricted') {
             $logAlert = <<<HTML
-                <div class="alert alert-danger p-2 m-0 mb-1 text-center h4">Accès non autorisé !</div>
+                <div class="alert alert-danger p-2 m-0 mb-1 text-center h4"><strong>Accès non autorisé !</strong></div>
             HTML;
         } else if ($_GET["log"] == 'disconnect') {
             $logAlert = <<<HTML
-                <div class="alert alert-info p-2 m-0 mb-1 text-center h4">Déconnexion effectuée !</div>
+                <div class="alert alert-info p-2 m-0 mb-1 text-center h4"><strong>Déconnexion effectuée !</strong></div>
             HTML;
-        }
-    } else {
-        $logAlert = "";
-    }
+        } else $logAlert = "";
+    } else $logAlert = "";
 
     $bodyContents = <<<HTML
-    <div class="panel-body row justify-content-center align-items-center">
-       <div class="col-3">
+    <div class="panel-body row justify-content-center align-items-center flex-fill">
+       <div class="col-xl-3 col-lg-4 col-md-12">
             <div class="card mb-3 box-shadow">
                 <div class="card-header text-center">
                    <h3 class="my-0 font-weight-normal">Connexion</h3>
                 </div>
                 <div id="loginCard" class="card-body">
                     $logAlert
-                    <form action="login.php" method="post" class="form-group-lg">
-                        <div class="row p-1">
+                    <form name="login" method="post" action="login.php" class="form-group-lg mx-3">
+                        <div class="row py-1">
                             <!--<label class="col-4 col-form-label border">Identifiant</label>-->
-                            <input class="col card box-shadow form-control" type="text" placeholder="Identifiant" name="login"/>
+                            <input class="col card box-shadow form-control" type="text" placeholder="Identifiant" name="login" required/>
                         </div>
-                        <div class="row p-1">
+                        <div class="row py-1">
                             <!--<label class="col-4 col-form-label">Mot de passe</label>-->
-                            <input class="col card box-shadow form-control" type="password" placeholder="Mode de passe..." name="password"/>
+                            <input class="col card box-shadow form-control" type="password" placeholder="Mode de passe..." name="password" required/>
                         </div>
-                        <div class="row p-1">
-                            <input value="Connexion" type="submit" class="col btn btn-lg btn-secondary" id="login">
+                        <div class="row pt-4">
+                            <input value="Connexion" type="submit" class="col btn btn-lg btn-secondary" id="loginButton">
                         </div>
                     </form>
                 </div>
@@ -160,14 +158,13 @@ $html = <<<HTML
         <link rel="shortcut icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA+5pVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1wTU06T3JpZ2luYWxEb2N1bWVudElEPSJ1dWlkOjY1RTYzOTA2ODZDRjExREJBNkUyRDg4N0NFQUNCNDA3IiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOkI0N0JDRjhEMDY5MTExRTI5OUZEQTZGODg4RDc1ODdCIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOkI0N0JDRjhDMDY5MTExRTI5OUZEQTZGODg4RDc1ODdCIiB4bXA6Q3JlYXRvclRvb2w9IkFkb2JlIFBob3Rvc2hvcCBDUzYgKE1hY2ludG9zaCkiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDowMTgwMTE3NDA3MjA2ODExODA4M0ZFMkJBM0M1RUU2NSIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDowNjgwMTE3NDA3MjA2ODExODA4M0U3NkRBMDNEMDVDMSIvPiA8ZGM6dGl0bGU+IDxyZGY6QWx0PiA8cmRmOmxpIHhtbDpsYW5nPSJ4LWRlZmF1bHQiPmdseXBoaWNvbnM8L3JkZjpsaT4gPC9yZGY6QWx0PiA8L2RjOnRpdGxlPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PgFdWUIAAAExSURBVHjaxFUBEcIwDFxRMAmVMAnBQSVMAhImAQlIQAJzUBzgAByU9C7jspCsZdc7cvfHyNbPLcn/upRSVwOMiEiEW+05R4c3wznX48+T5/Cc6yrioJBNCBBpUJ4D+R8xflUQbbiwNuRrjzghHiy/IOcy4YC4svy44mTkk0KyF2Hh5S26de0i1rRoLya1RVTANyjQc065RcF45TvimFeT1vNIOS3C1xblqnRD25ZoCK8X4vs8T1z9orFYeGXYUHconI2OLswoKRbFlX5S8i9BFlK0irlAAhu3Q4F/5v0Ea8hy9diQrefB0sFoDWuRPxGPBvnKJrQCQ2uhyQLXBgXOlptCQzcdNKvwDd3UW27KhzyxgW5aQm5L8YMj5O8rLAGUBQn//+gbfvQS9jzXDuMtwAATXCNvATubRQAAAABJRU5ErkJggg==" />
     </head>
     <body>
-        <div class="container-fluid" id="content">
-            <div style="font-size: 25px; line-height: 1em;" class="alert alert-info d-flex 
-            justify-content-center align-items-center" id="alertMessage">
+        <div class="container-fluid d-flex flex-column" id="content">
+            <div class="alert alert-info d-flex justify-content-center align-items-center" id="alertMessage">
                 <strong>Gestionnaire des serveurs (ObeProd)</strong>
             </div>
-            <div id="consoleRow">
-                <div class="panel panel-default" id="consoleContent">
-                    <div class="panel-heading">
+            <div id="consoleRow" class="flex-fill d-flex flex-column">
+                <div class="panel panel-default flex-fill d-flex flex-column" id="consoleContent">
+                    <div class="panel-heading d-flex justify-content-between">
                         $menuActionBar
                     </div>
                     $bodyContents

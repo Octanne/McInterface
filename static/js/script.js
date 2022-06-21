@@ -30,6 +30,16 @@ function alertMsg(msg, cls){
     });
 }
 
+function tryLogin()  {
+    console.log("Login...");
+    $.post("login.php", {login: document.forms['login'].elements['login'].value, password: document.forms['login'].elements['password'].value})
+        .done(function(htmlResponse){
+            document.write(htmlResponse);
+            console.log("Login !");
+        });
+    return false;
+}
+
 function sendOrder(server, order){
   $.post("rcon/action.php", { odr:order, srv:server })
     .done(function(json){
@@ -57,6 +67,12 @@ function sendOrder(server, order){
           $('#controlServ'+server).load('rcon/controlserv.php?mode=home&server='+server, function() {
           /// can add another function here
           });
+        }
+        else if(json.status == 'error'){
+            alertMsg(json.message, "danger");
+            $('#controlServ'+server).load('rcon/controlserv.php?mode=home&server='+server, function() {
+                /// can add another function here
+            });
         }
         else{
           alertMsg("Erreur Inconnue...", "danger");
