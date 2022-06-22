@@ -38,16 +38,12 @@ if (isset($_GET['srv'])) {
                 $server_path ='ssh2.sftp://' . intval($sftp) . "$directoryPath/$serverName";
 
                 $stream = null;
-                if ($pingServ->getStatut()) {
-                    $fileName = $server_path . "/logs/screen.log";
-                    if(file_exists($fileName)){
-                        try {
-                            $stream = fopen($fileName, 'r');
-                        }
-                        catch(Exception $e) {
-                            $stream = null;
-                        }
+                $fileName = $server_path . "/logs/screen.log";
+                if(file_exists($fileName)){
+                    try {
+                        $stream = fopen($fileName, 'r');
                     }
+                    catch(Exception $e) {}
                 }
                 if($stream == null) {
                     $fileName = $server_path . "/logs/latest.log";

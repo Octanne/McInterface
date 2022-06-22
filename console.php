@@ -23,16 +23,16 @@ if (!isset($_GET['server']) || (!in_array($_GET['server'],$serverList))) {
 
         if ($statutServ) {
             $serverActionsButtons = <<<HTML
-            <a style="size: 12px; padding-top: 0.3em;" class="btn btn-default" title="Redémarrer" id="btnReboot" onclick="btnReboot('$name');">
+            <a style="padding-top: 0.3em;" class="btn btn-default" title="Redémarrer" id="btnReboot" onclick="btnReboot('$name');">
                 <span class="glyphicon glyphicon-repeat"></span>
             </a>
-            <a style="size: 12px; padding-top: 0.3em;" class="btn btn-default" title="Arrêter" id="btnStop" onclick="btnStop('$name');">
+            <a style="padding-top: 0.3em;" class="btn btn-default" title="Arrêter" id="btnStop" onclick="btnStop('$name');">
                 <span class="glyphicon glyphicon-stop"></span>
             </a>
             HTML;
         } else {
             $serverActionsButtons = <<<HTML
-            <a style="size: 12px; padding-top: 0.3em;" class="btn btn-default" title="Démarrer" id="btnBoot" onclick="btnBoot('$name');">
+            <a style="padding-top: 0.3em;" class="btn btn-default" title="Démarrer" id="btnBoot" onclick="btnBoot('$name');">
                 <span class="glyphicon glyphicon-play"></span>
             </a>
             HTML;
@@ -75,10 +75,10 @@ if (!isset($_GET['server']) || (!in_array($_GET['server'],$serverList))) {
                                 </h3>
                                 <div class="btn-group btn-group-xs pull-right" id="controlServ">
                                     $serverActionsButtons
-                                    <a style="size: 12px; padding-top: 0.3em;" class="btn btn-default" title="Home" href="/">
+                                    <a style="padding-top: 0.3em;" class="btn btn-default" title="Home" href="/">
                                         <span class="glyphicon glyphicon-home"></span>
                                     </a>
-                                    <a style="size: 12px; padding-top: 0.3em; margin-left: 1em;" class="btn btn-default" title="Déconnexion" href="disconnect.php">
+                                    <a style="padding-top: 0.3em; margin-left: 1em;" class="btn btn-default" title="Déconnexion" href="disconnect.php">
                                         <span class="glyphicon glyphicon-user"></span>
                                         <span class="hidden-xs"> Déconnexion</span>
                                     </a>
@@ -95,7 +95,7 @@ if (!isset($_GET['server']) || (!in_array($_GET['server'],$serverList))) {
                                 <input id="chkAutoScroll" type="checkbox" checked="true" autocomplete="off" /><span class="glyphicon glyphicon-arrow-down"></span>
                             </span>
                             <div id="txtCommandResults"></div>
-                            <input type="text" class="form-control" id="txtCommand" />
+                            <textarea type="text" class="form-control" id="txtCommand"></textarea>
                             <div class="input-group-btn">
                               <button type="button" class="btn btn-primary" id="btnSend"><span class="glyphicon glyphicon-send"></span><span class="hidden-xs"> Envoyer</span></button>
                               <button type="button" class="btn btn-warning" id="btnClearLog"><span class="glyphicon glyphicon-erase"></span><span class="hidden-xs"> Effacer</span></button>

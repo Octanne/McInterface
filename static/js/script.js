@@ -95,6 +95,24 @@ function sendOrder(server, order){
     });
 }
 
+var lastResponse = null;
 $(document).ready(function(){
-  
+    setInterval(updateStatusServ, 1000);
+
+    function updateStatusServ() {
+        var path = "rcon/servers_status.php";
+        $.get(path).done(function (jsonResponse) {
+
+            if (lastResponse !== null && lastResponse !== jsonResponse) {
+                for (servEntry in lastResponse.serverList) {
+                    if (jsonResponse.serverList[servEntry].status !== lastResponse.serverList[servEntry].status) {
+                        $('#controlServ'+servEntry).load('rcon/controlserv.php?mode=home&server=' + servEntry, function () {
+                            /// can add another function here
+                        });
+                    }
+                }
+            }
+            lastResponse = jsonResponse;
+        });
+    }
 });

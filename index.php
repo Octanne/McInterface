@@ -95,18 +95,26 @@ if (isset($_SESSION['isLogin']) && $_SESSION['isLogin']) {
     if (isset($_GET["log"])) {
         if ($_GET["log"] == 'denied') {
             $logAlert = <<<HTML
-                <div class="alert alert-warning p-2 m-0 mb-1 text-center h4"><strong>Identifiant incorrect !</strong></div>
+                <div class="alert alert-warning p-2 m-0 mb-1 text-center h4" style="line-height: 1em;"><strong>Identifiant incorrect !</strong></div>
             HTML;
         } else if ($_GET["log"] == 'restricted') {
             $logAlert = <<<HTML
-                <div class="alert alert-danger p-2 m-0 mb-1 text-center h4"><strong>Accès non autorisé !</strong></div>
+                <div class="alert alert-danger p-2 m-0 mb-1 text-center h4" style="line-height: 1em;"><strong>Accès non autorisé !</strong></div>
             HTML;
         } else if ($_GET["log"] == 'disconnect') {
             $logAlert = <<<HTML
-                <div class="alert alert-info p-2 m-0 mb-1 text-center h4"><strong>Déconnexion effectuée !</strong></div>
+                <div class="alert alert-info p-2 m-0 mb-1 text-center h4" style="line-height: 1em;"><strong>Déconnexion effectuée !</strong></div>
             HTML;
-        } else $logAlert = "";
-    } else $logAlert = "";
+        } else {
+            $logAlert = <<<HTML
+                <div class="alert alert-secondary p-2 m-0 mb-1 text-center h4" style="line-height: 1em;"><strong>Saisisser vos identifiants</strong></div>
+            HTML;
+        }
+    } else {
+        $logAlert = <<<HTML
+                <div class="alert alert-secondary p-2 m-0 mb-1 text-center h4" style="line-height: 1em;"><strong>Saisisser vos identifiants</strong></div>
+            HTML;
+    }
 
     $bodyContents = <<<HTML
     <div class="panel-body row justify-content-center align-items-center flex-fill">

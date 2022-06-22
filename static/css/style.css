@@ -40,6 +40,7 @@ html, body {
 
 #consoleCommand{
   margin-bottom: 0.5em;
+  display: flex;
 }
 
 .panel-body ul{
@@ -62,7 +63,12 @@ html, body {
   padding: 3px 10px
 }
 
-
+a[disabled] {
+  background-color: #8c8c8c;
+}
+a[disabled]:hover {
+  background-color: #888!important;
+}
 
 .ui-autocomplete {
   position: absolute;
@@ -96,6 +102,23 @@ html, body {
   overflow-y: auto;
   overflow-x: hidden;
 }
+#txtCommand {
+  height: 2.5em;
+  width: auto;
+  min-height: 2.5em;
+  max-height: 10em;
+}
+.input-group-addon {
+  width: fit-content;
+  display: flex;
+  align-items: center;
+}
+.input-group-btn {
+  width: fit-content;
+}
+.input-group-btn > button {
+  height: 100%;
+}
 ul#groupLog > li {
   list-style-type: none;
   min-height: 1em;
@@ -106,13 +129,12 @@ ul#groupLog > li span.font-weight-lighter{font-weight: lighter;}
 ul#groupLog > li span.font-italic{font-style: italic;}
 ul#groupLog > li span.text-decoration-underlined{text-decoration: underline;}
 ul#groupLog > li span.text-decoration-overlined{text-decoration: line-through;}
-ul#groupLog > li span.text-decoration-underlined.text-decoation-overlined{text-decoration: underline line-through;}
+ul#groupLog > li span.text-decoration-underlined.text-decoration-overlined{text-decoration: underline line-through;}
 ul#groupLog > li span.text-magic {
-  color: transparent !important;
   background-image: linear-gradient(    to left,    violet,    indigo,    blue,    green,    yellow,    orange,    red  );
   -webkit-background-clip: text;
   -webkit-background-clip: text;
   -moz-background-clip: text;
   background-clip: text;
-  color: transparent;
+  color: #0004;
 }

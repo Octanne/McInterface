@@ -15,16 +15,19 @@ $(document).ready(function () {
   });
 
   function sendTextCommand() {
-    if ($("#txtCommand").val() !== "") {
+    var txtCommand = document.getElementById("txtCommand");
+    var text = txtCommand.value;
+    if (text !== "") {
       $("#btnSend").prop("disabled", true);
-      sendCommand(getServerName(), $("#txtCommand").val());
-      $("#txtCommand").val("");
+      sendCommand(getServerName(), text);
+      txtCommand.value = '';
     }
   }
 
-  $("#txtCommand").keyup(function (e) {
-    if (e.keyCode == 13) {
+  document.getElementById('txtCommand').addEventListener('keyup', (e) => {
+    if (e.key == 'Enter' && !e.shiftKey) {
       sendTextCommand();
+      e.preventDefault();
     }
   });
 
@@ -37,14 +40,31 @@ $(document).ready(function () {
 });
 
 var logIndex = 0;
+var lastResponse = null;
 function timingLoad() {
   if (logUpdateOnLoad) return;
   else logUpdateOnLoad = true;
   var path = "rcon/logs_console.php?srv=" + getServerName() + "&line=" + logIndex;
   $.get(path).done(function (jsonResponse) {
+    /**
+     * @type {string[]}
+     */
     const inputs = jsonResponse.consoleLines;
 
+    if (lastResponse !== null && jsonResponse.servStatus !== lastResponse.servStatus) {
+      $('#controlServ').load('rcon/controlserv.php?mode=console&server=' + getServerName(), function () {
+        /// can add another function here
+      });
+    }
+
     if (inputs) {
+      var match;
+      for (var i = inputs.length - 1; i > 0; i--) {
+        if (match = inputs[i].match(/^\u001bM\u001b\[(\d+)C/)) {
+          inputs[i - 1] += '\b' + inputs[i].substring(match[0].length);
+          inputs.splice(i, 1);
+        }
+      }
       inputs.forEach(addRawLog);
     }
     else {
@@ -60,6 +80,7 @@ function timingLoad() {
       logIndex = jsonResponse.endIndex + 1;
     }
     logUpdateOnLoad = false;
+    lastResponse = jsonResponse;
     if (isScrollLock()) {
       scrollToBottom();
     }
@@ -87,20 +108,20 @@ function addLog(html) {
 
 const colors = {
   '30': '000',
-  '31': 'f00',
-  '32': '0f0',
-  '33': 'ff0',
-  '34': '00f',
-  '35': 'f0f',
-  '36': '0ff',
-  '37': 'fff',
-  '90': '000',
-  '91': 'f00',
-  '92': '0f0',
-  '93': 'ff0',
-  '94': '00f',
-  '95': 'f0f',
-  '96': '0ff',
+  '31': 'a70000',
+  '32': '00a700',
+  '33': 'fba700',
+  '34': '0000a7',
+  '35': 'a700a7',
+  '36': '00a7a7',
+  '37': 'a7a7a7',
+  '90': '545454',
+  '91': 'fb5454',
+  '92': '54fb54',
+  '93': 'fbfb54',
+  '94': '5454fb',
+  '95': 'fb54fb',
+  '96': '54fbfb',
   '97': 'fff',
 };
 
@@ -132,11 +153,13 @@ class SGRStyle {
   }
 
   /**
-   * @param {number} value
+   * @param {number[]} values
    */
-  setSGRStyle(value) {
-    if (colors[value]) { this.textColor = colors[value]; return; }
-    if (colors[value - 10]) { this.bgColor = colors[value - 10]; return; }
+  setSGRStyle(values) {
+    if (values.length === 0) return;
+    const value = values[0];
+    if (colors[value]) { this.textColor = (values[1] === 1 ? colors[value + 60] : null) || colors[value]; return; }
+    if (colors[value - 10]) { this.bgColor = (values[1] === 1 ? colors[value - 10 + 60] : null) || colors[value - 10]; return; }
     switch (value) {
       case 0:
         this.textColor = '';
@@ -162,9 +185,20 @@ class SGRStyle {
       case 53: this.overlined = true; break;
       case 55: this.overlined = false; break;
       default:
-        console.warn('unknown style', value);
+        console.warn('unknown style', value, values);
         break;
     }
+  }
+
+  /**
+   * @param {number[]} values
+   */
+  setSGRStyles(sgrParam) {
+    if (sgrParam[0] === 0) {
+      this.setSGRStyle([0]);
+      sgrParam.shift();
+    }
+    this.setSGRStyle(sgrParam);
   }
 }
 
@@ -198,6 +232,7 @@ function parseTextToHtml(text) {
     .replace(/\u001b\=/, '')
     .replace(/\u001b>/, '')
     .replace(/^> \s+/, '');
+  if (text == '>') return '\b';
   /**
    * @type {{style:string, classes:string, text:string}[]}
    */
@@ -228,19 +263,20 @@ function parseTextToHtml(text) {
     }
     if (!match) break;
 
-    var sgrParam = match[2];
+    var sgrParam = match[2].split(';').map(v => parseInt(v || '0'));
     var after = text.substring(match.index + match[0].length);
 
-    sgrParam.split(';').forEach(param => style.setSGRStyle(parseInt(param || '0')));
+    style.setSGRStyles(sgrParam);
     text = after;
   }
 
-  var iSafe = 0;
-  // remove with the backspace (\x08)
+  // remove with the backspace (\x08 or \b)
   for (let i = 0; i < output.length; i++) {
     var match;
+    while (match = output[i].text.match(/\u001b\[(\d+)D/)) {
+      output[i].text = output[i].text.replace(match[0], '\b'.repeat(match[1]));
+    }
     while ((match = output[i].text.match(/\x08/))) {
-      iSafe++;
       if (match.index > 0) {
         // Remove the previous character and the backspace
         output[i].text = output[i].text.substring(0, match.index - 1) + output[i].text.substring(match.index + 1);
@@ -269,12 +305,11 @@ function parseTextToHtml(text) {
  */
 function addRawLog(text) {
   text = text.replace(/\r\n$/, '');
-  var textBetweenReset = text.split('\\u001b\[0m').filter(text => text != '');
-
-  var html = textBetweenReset.map(text => parseTextToHtml(text)).join('\n');
-  addLog(html);
+  var html = parseTextToHtml(text);
+  if (html != '\b') addLog(html);
 }
 
+var firstScroll = true;
 function isScrollLock() { return document.getElementById("chkAutoScroll").checked; }
 function scrollToBottom() {
   autoScrolling = Date.now();
@@ -282,8 +317,9 @@ function scrollToBottom() {
   panelLog.scroll({
     top: panelLog.scrollHeight,
     left: 0,
-    behavior: 'smooth'
+    behavior: firstScroll ? 'auto' : 'smooth'
   });
+  if (firstScroll) firstScroll = false;
 }
 
 function getServerName() {
@@ -314,13 +350,13 @@ function alertDanger(msg) {
 
 function btnBoot(serverName) {
   document.getElementById("btnBoot").disabled = true;
-  alertMsg("Démarage du serveur " + serverName + " en cours...", "info");
+  alertMsg("Démarrage du serveur " + serverName + " en cours...", "info");
   sendOrder(serverName, "boot");
 }
 function btnReboot(serverName) {
   document.getElementById("btnReboot").disabled = true;
   document.getElementById("btnStop").disabled = true;
-  alertMsg("Redémarage du serveur " + serverName + " en cours...", "info");
+  alertMsg("Redémarrage du serveur " + serverName + " en cours...", "info");
   sendOrder(serverName, "reboot");
 }
 function btnStop(serverName) {
@@ -404,7 +440,7 @@ function sendCommand(server, command) {
           alertWarning("Authentification au serveur impossible (check password & username)");
         }
         else if (json.status == 'offlineError') {
-          alertDanger("Le serveur " + server + " est hors-ligne (démarrer le d'abord)");
+          alertDanger("Le serveur " + server + " est hors-ligne (démarrez le d'abord)");
         }
         else {
           alertDanger("Erreur Inconnue...");
