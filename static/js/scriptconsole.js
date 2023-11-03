@@ -20,15 +20,68 @@ $(document).ready(function () {
     if (text !== "") {
       $("#btnSend").prop("disabled", true);
       sendCommand(getServerName(), text);
+      commandHistory.push(text);
+      commandHistoryIndex = null;
       txtCommand.value = '';
     }
+    closeAutocomplete();
   }
 
-  document.getElementById('txtCommand').addEventListener('keyup', (e) => {
+  getTextCommand().addEventListener('keydown', (e) => {
     if (e.key == 'Enter' && !e.shiftKey) {
-      sendTextCommand();
       e.preventDefault();
+      sendTextCommand();
     }
+    else if (e.key == 'ArrowUp' || e.key == 'ArrowDown') {
+      if (isAutocompleteOpen()) {
+        e.preventDefault();
+        if (e.key == 'ArrowUp') autoCompletePrevious();
+        else autoCompleteNext();
+      }
+      else {
+        if (e.key == 'ArrowUp') {
+          var isAtTheFirstLine = getTextCommandLinePosition() == 0;
+          if (isAtTheFirstLine || e.ctrlKey) {
+            e.preventDefault();
+            goHistoryBack();
+          }
+        }
+        else {
+          var isAtTheLastLine = getTextCommandLinePosition() == getTextCommandLineCount() - 1;
+          if (isAtTheLastLine || e.ctrlKey) {
+            e.preventDefault();
+            goHistoryForward();
+          }
+        }
+      }
+    }
+    else if (e.key == 'Tab') {
+      if (e.shiftKey) {
+        e.preventDefault();
+        // insert a tabulation character
+        const txtCommand = getTextCommand();
+        txtCommand.value = txtCommand.value.substring(0, txtCommand.selectionStart) + '\t' + txtCommand.value.substring(txtCommand.selectionEnd);
+      }
+      else if (isAutocompleteOpen()) {
+        e.preventDefault();
+        acceptAutoComplete();
+      }
+    }
+  });
+  getTextCommand().addEventListener('keyup', (e) => {
+    if (e.key == ' ' && e.ctrlKey) {
+      openAutocomplete();
+    }
+    else if (e.key == 'Escape') {
+      closeAutocomplete();
+    }
+    else if ((e.key.length == 1 && e.key.match(/[a-zA-Z\-_0-9~^@\{\}\[\]\(\) ]/)) || e.key == 'Backspace' || e.key == 'ArrowLeft' || e.key == 'ArrowRight') {
+      updateAutoComplete();
+    } else {
+    }
+  });
+  getTextCommand().addEventListener('mouseup', (e) => {
+    updateAutoComplete();
   });
 
   $("#btnSend").click(() => sendTextCommand());
@@ -37,6 +90,19 @@ $(document).ready(function () {
     $("#groupLog").empty();
     alertInfo("La console a été vidée");
   });
+
+  document.getElementById("autocomplete-container").addEventListener('click', e => {
+    const container = document.getElementById("autocomplete-container");
+    // check if it was a children of autocomplete-container
+    if (e.target?.parentNode == container) {
+      var index = Array.from(container.children).indexOf(e.target);
+      autoCompleteSelect(index);
+      acceptAutoComplete(true);
+      updateAutoComplete();
+    }
+  });
+
+  loadDragBar();
 });
 
 var logIndex = 0;
@@ -65,7 +131,13 @@ function timingLoad() {
           inputs.splice(i, 1);
         }
       }
-      inputs.forEach(addRawLog);
+      const inputsLimit = 10000;
+      if (inputs.length > inputsLimit) {
+        inputs.filter((v, i) => inputs.length - i - 1 <= inputsLimit).forEach(addRawLog);
+      }
+      else {
+        inputs.forEach(addRawLog);
+      }
     }
     else {
       addLog(`${getLogTextTime()} Le serveur n'est pas accessible : ${jsonResponse.message}`);
@@ -84,6 +156,8 @@ function timingLoad() {
     if (isScrollLock()) {
       scrollToBottom();
     }
+
+    setPlayerList(jsonResponse.players);
   });
 }
 
@@ -100,9 +174,23 @@ function getLogTextTime() {
   return `[${h}:${m}:${s}]`;
 }
 
-function addLog(html) {
+/**
+ * @param {HTMLElement[]} nodes
+ */
+function addLogsHtml(nodes) {
   var li = document.createElement('li');
-  li.innerHTML = html;
+  for (const node of nodes) {
+    li.appendChild(node);
+  }
+  document.getElementById('groupLog').appendChild(li);
+}
+
+/**
+ * @param {string} text
+ */
+function addLog(text) {
+  var li = document.createElement('li');
+  li.innerText = text;
   document.getElementById('groupLog').appendChild(li);
 }
 
@@ -138,7 +226,7 @@ class SGRStyle {
 
   getStyles() {
     return [
-      this.textColor ? `color: #${this.textColor};` : '',
+      this.textColor ? `color: #${this.textColor}; --color: #${this.textColor};` : '',
       this.bgColor ? `background-color: #${this.bgColor};` : '',
     ].filter(v => v).join(' ');
   }
@@ -185,7 +273,7 @@ class SGRStyle {
       case 53: this.overlined = true; break;
       case 55: this.overlined = false; break;
       default:
-        console.warn('unknown style', value, values);
+        console.warn('ANSI/CSI/SGR unknown style', value, values);
         break;
     }
   }
@@ -199,22 +287,6 @@ class SGRStyle {
       sgrParam.shift();
     }
     this.setSGRStyle(sgrParam);
-  }
-}
-
-/**
- * @param {string} value
- */
-function getStyle(value) {
-  if (colors[value]) return 'color: #' + colors[value];
-  switch (value) {
-    case '0': return 'color: #000; font-weight: normal;'; // reset
-    case '1': return 'font-weight: bold;'; // bold
-    case '22': return 'font-weight: normal;'; // unbold
-    case '39': return 'color: #000;'; // default
-    default:
-      console.warn(`ANSI/CSI/SGR unknown style: ${value}`);
-      return '';
   }
 }
 
@@ -296,8 +368,14 @@ function parseTextToHtml(text) {
   // remove empty
   output = output.filter(v => v.text.length > 0);
 
-  const spans = output.filter(v => v.text).map(({ style, classes, text }) => `<span${classes ? ` class="${classes}"` : ''}${style ? ` style="${style}"` : ''}>${text}</span>`);
-  return spans.join('');
+  const spans = output.filter(v => v.text).map(({ style, classes, text }) => {
+    const span = document.createElement('span');
+    span.className = classes;
+    span.style.cssText = style;
+    span.innerText = text;
+    return span;
+  });
+  return spans;
 }
 
 /**
@@ -305,8 +383,8 @@ function parseTextToHtml(text) {
  */
 function addRawLog(text) {
   text = text.replace(/\r\n$/, '');
-  var html = parseTextToHtml(text);
-  if (html != '\b') addLog(html);
+  var nodes = parseTextToHtml(text);
+  if (nodes != null && nodes.length > 0 && nodes != '\b') addLogsHtml(nodes);
 }
 
 var firstScroll = true;
@@ -328,93 +406,118 @@ function getServerName() {
   return urlParams.get('server');
 }
 
-function alertMsg(msg, cls) {
+function resetAlertMsg() {
   $("#alertMessage").fadeOut("slow", function () {
-    $("#alertMessage").attr("class", "d-flex justify-content-center align-items-center alert alert-" + cls);
-    $("#alertMessage").html('<span>' + msg + '</span>');
+    $("#alertMessage").attr("class", "d-flex justify-content-center align-items-center alert alert-info");
+    $("#alertMessage").html('<strong>Gestionnaire des serveurs (ObeProd)</strong>');
     $("#alertMessage").fadeIn("slow", function () { });
   });
 }
+var timeoutReset = null;
+/**
+ * @param {string} msg
+ * @param {string} cls CSS Class
+ * @param {number} resetTimeout
+ */
+function alertMsg(msg, cls, resetTimeout) {
+  log(`${cls.toUpperCase()}: ${msg}`);
+  if (timeoutReset) clearTimeout(timeoutReset);
+  timeoutReset = null;
+  $("#alertMessage").fadeOut("slow", function () {
+    $("#alertMessage").attr("class", "d-flex justify-content-center align-items-center alert alert-" + cls);
+    $("#alertMessage").html('<span>' + msg + '</span>');
+    $("#alertMessage").fadeIn("slow", function () {
+      timeoutReset = setTimeout(resetAlertMsg, resetTimeout);
+    });
+  });
+}
+function getDateTime() {
+  return new Date().toLocaleString();
+}
+function log(msg) {
+  console.log(`[${getDateTime()}] ${msg}`);
+}
 function alertSuccess(msg) {
-  alertMsg(msg, "success");
+  alertMsg(msg, "success", 10000);
 }
 function alertInfo(msg) {
-  alertMsg(msg, "info");
+  alertMsg(msg, "info", 10000);
 }
 function alertWarning(msg) {
-  alertMsg(msg, "warning");
+  alertMsg(msg, "warning", 60000);
 }
 function alertDanger(msg) {
-  alertMsg(msg, "danger");
+  alertMsg(msg, "danger", 60000);
 }
 
 function btnBoot(serverName) {
   document.getElementById("btnBoot").disabled = true;
-  alertMsg("Démarrage du serveur " + serverName + " en cours...", "info");
+  alertInfo("Démarrage du serveur " + serverName + " en cours...");
   sendOrder(serverName, "boot");
 }
 function btnReboot(serverName) {
   document.getElementById("btnReboot").disabled = true;
   document.getElementById("btnStop").disabled = true;
-  alertMsg("Redémarrage du serveur " + serverName + " en cours...", "info");
+  alertInfo("Redémarrage du serveur " + serverName + " en cours...");
   sendOrder(serverName, "reboot");
 }
 function btnStop(serverName) {
   document.getElementById("btnReboot").disabled = true;
   document.getElementById("btnStop").disabled = true;
-  alertMsg("Arrêt du serveur " + serverName + " en cours...", "info");
+  alertInfo("Arrêt du serveur " + serverName + " en cours...");
   sendOrder(serverName, "stop");
 }
 
 function sendOrder(server, order) {
   $.post("rcon/action.php", { odr: order, srv: server })
     .done(function (json) {
-      if (json.status) {
+      if (json?.status) {
         if (json.status == 'success') {
-          alertMsg(json.message, "info");
+          alertInfo(json.message);
           $('#controlServ').load('rcon/controlserv.php?mode=console&server=' + server, function () {
             /// can add another function here
           });
         }
         else if (json.status == 'commandError') {
-          alertMsg("L'instruction n'a pas été reconnue par le système...", "warning");
+          alertWarning("L'instruction n'a pas été reconnue par le système...");
           $('#controlServ').load('rcon/controlserv.php?mode=console&server=' + server, function () {
             /// can add another function here
           });
         }
         else if (json.status == 'connexionError') {
-          alertMsg("La connexion au serveur n'a pu être établie (check PORT & IP address)", "warning");
+          alertWarning("La connexion au serveur n'a pu être établie (check PORT & IP address)");
           $('#controlServ').load('rcon/controlserv.php?mode=console&server=' + server, function () {
             /// can add another function here
           });
         }
         else if (json.status == 'authError') {
-          alertMsg("Authentification au serveur impossible (check password & username)", "warning");
+          alertWarning("Authentification au serveur impossible (check password & username)");
           $('#controlServ').load('rcon/controlserv.php?mode=console&server=' + server, function () {
             /// can add another function here
           });
         }
         else if (json.status == 'error') {
-          alertMsg(json.message, "danger");
+          alertDanger(json.message);
           $('#controlServ').load('rcon/controlserv.php?mode=console&server=' + server, function () {
             /// can add another function here
           });
         }
         else {
-          alertMsg("Erreur Inconnue...", "danger");
+          alertDanger("Erreur Inconnue...");
           $('#controlServ').load('rcon/controlserv.php?mode=console&server=' + server, function () {
             /// can add another function here
           });
         }
       }
       else {
-        alertMsg("Aucun statut renvoyé...", "danger");
+        alertDanger("Aucun statut renvoyé...");
         $('#controlServ').load('rcon/controlserv.php?mode=console&server=' + server, function () {
           /// can add another function here
         });
       }
-    }).fail(function () {
-      alertMsg("RCON erreur post FAILED !", "danger");
+    }).fail(function (...e) {
+      alertDanger("RCON erreur post FAILED !");
+      console.log('Order ' + order + ' sent to ' + server + ' FAILED !', e);
       $('#controlServ').load('rcon/controlserv.php?mode=console&server=' + server, function () {
         /// can add another function here
       });
@@ -422,6 +525,8 @@ function sendOrder(server, order) {
 }
 
 function sendCommand(server, command) {
+  command = command.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+
   $.post("rcon/action.php", { cmd: command, srv: server, odr: 'command' })
     .done(function (json) {
       $("#btnSend").prop("disabled", false);
@@ -453,3 +558,244 @@ function sendCommand(server, command) {
       alertDanger("RCON erreur post FAILED !");
     });
 }
+
+/** @return {HTMLTextAreaElement} */
+function getTextCommand() { return document.getElementById("txtCommand"); }
+function getTextCommandLinePosition() {
+  var txtCommand = getTextCommand();
+  return txtCommand.value.substring(0, txtCommand.selectionStart).split('\n').length - 1;
+}
+function getTextCommandLineCount() {
+  var txtCommand = getTextCommand();
+  return txtCommand.value.split('\n').length;
+}
+function fillTextCommand(text, selectIndex) {
+  var txtCommand = getTextCommand();
+  txtCommand.value = text;
+  txtCommand.selectionStart = selectIndex ?? text.length;
+  txtCommand.selectionEnd = selectIndex ?? text.length;
+}
+var commandHistory = [];
+var tempCommand = '';
+var commandHistoryIndex = 0;
+function goHistoryBack() {
+  if (commandHistoryIndex == null) {
+    if (commandHistory.length == 0) return;
+    tempCommand = getTextCommand().value;
+    commandHistoryIndex = commandHistory.length;
+  }
+  if (commandHistoryIndex > 0) {
+    commandHistoryIndex--;
+    fillTextCommand(commandHistory[commandHistoryIndex]);
+  }
+}
+function goHistoryForward() {
+  if (commandHistoryIndex == null) return;
+  if (commandHistoryIndex + 1 < commandHistory.length) {
+    commandHistoryIndex++;
+    fillTextCommand(commandHistory[commandHistoryIndex], 0);
+  }
+  else {
+    commandHistoryIndex = null;
+    fillTextCommand(tempCommand, 0);
+  }
+}
+
+
+/** @param {{id:string,name:string}[]} players */
+function setPlayerList(players) {
+  const playerList = document.getElementById('playerList');
+  /** @type {HTMLDivElement[]} */
+  const playerListChildren = Array.from(playerList.children);
+
+  players ??= [];
+  for (const player of players) {
+    const playerId = player.id;
+    const playerName = player.name;
+    let head = playerListChildren.find(child => child.uuid == playerId);
+    if (head) {
+      // update the player
+      head.title = playerName;
+      head.name = playerName;
+    }
+    else {
+      head = document.createElement('div');
+      head.className = 'playerHead';
+      head.title = playerName;
+      head.uuid = playerId;
+      head.name = playerName;
+      const img = document.createElement('img');
+      img.src = `https://mc-heads.net/head/${playerId}/16`;
+      img.alt = playerName;
+      head.appendChild(img);
+      const span = document.createElement('span');
+      span.innerText = playerName;
+      head.appendChild(span);
+      head.style.opacity = 0;
+      head.addEventListener('load', () => head.style.removeProperty('opacity'), true);
+      setTimeout(() => head.style.removeProperty('opacity'), 1000);
+
+      // insert the player at the right position (ordered by name)
+      let insertBefore = null;
+      for (const child of playerList.children) {
+        if (child.name > playerName) {
+          insertBefore = child;
+          break;
+        }
+      }
+      if (insertBefore == null) {
+        playerList.appendChild(head);
+      }
+      else {
+        playerList.insertBefore(head, insertBefore);
+      }
+    }
+  }
+  // remove the players in the DOM which are not in the list
+  // Array.from(playerList.children).filter(head => !players.find(player => player.id == head.uuid)).forEach(head => playerList.removeChild(head));
+  setAutocompletePlayerList(players);
+}
+
+/** @type {HTMLSpanElement} */
+var autoCompleteSelected = null;
+function openAutocomplete() {
+  const autocompleteDOM = document.getElementById('autocomplete-container');
+  var textCommand = getTextCommand();
+  var commandLine = textCommand.value;
+  /** @type {string[]} */
+  var autocompleteList = getAutocompleteList(commandLine, textCommand.selectionEnd);
+  if (autocompleteList.length == 0) {
+    autocompleteDOM.setAttribute('empty', '');
+  }
+  else {
+    autocompleteDOM.removeAttribute('empty');
+    autocompleteDOM.innerHTML = '';
+    for (const item of autocompleteList) {
+      const itemDOM = document.createElement('span');
+      itemDOM.innerHTML = item;
+      autocompleteDOM.appendChild(itemDOM);
+    }
+    if (autoCompleteSelected != null) {
+      // select the item with the same text
+      var text = autoCompleteSelected.innerText || '';
+      autoCompleteSelected = Array.from(autocompleteDOM.children).find(child => child.textContent.startsWith(text) || text.startsWith(child.textContent)) || null;
+    }
+    if (autoCompleteSelected == null) {
+      autoCompleteSelected = autocompleteDOM.firstChild;
+    }
+    autoCompleteSelected?.setAttribute?.('selected', '');
+  }
+  var lastSpaceIndex = commandLine.lastIndexOf(' ');
+  autocompleteDOM.style.setProperty('--cursor-x', lastSpaceIndex == -1 ? 0 : lastSpaceIndex + 1);
+}
+function isAutocompleteOpen() { return autoCompleteSelected != null; }
+function updateAutoComplete() {
+  if (isAutocompleteOpen()) {
+    openAutocomplete();
+  }
+}
+function closeAutocomplete() {
+  const autocompleteDOM = document.getElementById('autocomplete-container');
+  autocompleteDOM.setAttribute('empty', '');
+  autocompleteDOM.innerHTML = '';
+  autoCompleteSelected = null;
+}
+function autoCompletePrevious() {
+  if (autoCompleteSelected == null) return;
+  autoCompleteSelected.removeAttribute('selected');
+  autoCompleteSelected = autoCompleteSelected.previousElementSibling || autoCompleteSelected;
+  autoCompleteSelected.setAttribute('selected', '');
+}
+function autoCompleteNext() {
+  if (autoCompleteSelected == null) return;
+  autoCompleteSelected.removeAttribute('selected');
+  autoCompleteSelected = autoCompleteSelected.nextElementSibling || autoCompleteSelected;
+  autoCompleteSelected.setAttribute('selected', '');
+}
+function autoCompleteSelect(index) {
+  autoCompleteSelected?.removeAttribute('selected');
+  const autocompleteDOM = document.getElementById('autocomplete-container');
+  autoCompleteSelected = autocompleteDOM.children[index] || null;
+  autoCompleteSelected?.setAttribute('selected', '');
+}
+function acceptAutoComplete(insertSpace = false) {
+  if (autoCompleteSelected == null) return;
+  const commandLine = getTextCommand().value;
+  var lastSpaceIndex = commandLine.lastIndexOf(' ');
+  var newCommandLine = commandLine.substring(0, lastSpaceIndex + 1) + autoCompleteSelected.textContent;
+  if (insertSpace) newCommandLine += ' ';
+  fillTextCommand(newCommandLine);
+}
+
+// DragBar
+/** @type {[{dragbar:HTMLElement, wrapper:HTMLElement, boxA:HTMLElement, min:number, max:number, horizontal:boolean}]} */
+var dragbars = [];
+/** @type {{dragbar:HTMLElement, wrapper:HTMLElement, boxA:HTMLElement, min:number, max:number, horizontal:boolean}} */
+var dragbarDragging = null;
+function loadDragBar() {
+  const dragbarsDOM = document.getElementsByClassName('dragbar');
+  for (const dragbar of dragbarsDOM) {
+    const wrapper = dragbar.parentElement;
+    const boxA = wrapper.children[0];
+    const horizontal = dragbar.classList.contains('dragbar-horizontal');
+    dragbars.push({ dragbar, wrapper, boxA, min: 0, max: 10000, horizontal });
+  }
+}
+document.addEventListener('mousedown', function (e) {
+  // If mousedown event is fired from a dragbar
+  const dragbar = dragbars.find(dragbar => dragbar.dragbar == e.target);
+  if (dragbar) {
+    dragbarDragging = dragbar;
+    const min_ratio = dragbar.dragbar.getAttribute('min_ratio') || '0';
+    const max_ratio = dragbar.dragbar.getAttribute('max_ratio') || '1';
+    var minSizeBoxA = (dragbar.dragbar.getAttribute('min_size_boxA') || '0px').replace('px', '');
+    var maxSizeBoxA = (dragbar.dragbar.getAttribute('max_size_boxA') || '10000px').replace('px', '');
+    var minSizeBoxB = (dragbar.dragbar.getAttribute('min_size_boxB') || '0px').replace('px', '');
+    var maxSizeBoxB = (dragbar.dragbar.getAttribute('max_size_boxB') || '10000px').replace('px', '');
+    const wrapperSize = dragbar.horizontal ? dragbar.wrapper.clientHeight : dragbar.wrapper.clientWidth;
+    dragbar.min = Math.max(minSizeBoxA, wrapperSize * min_ratio, wrapperSize - maxSizeBoxB - 28);
+    dragbar.max = Math.min(maxSizeBoxA, wrapperSize * max_ratio, wrapperSize - minSizeBoxB - 28);
+  }
+  else {
+    dragbarDragging = null;
+  }
+});
+
+document.addEventListener('mousemove', function (e) {
+  if (!dragbarDragging) return false;
+
+  if (!dragbarDragging.horizontal) {
+    // Get offset
+    var containerOffsetLeft = dragbarDragging.wrapper.offsetLeft;
+
+    // Get x-coordinate of pointer relative to container
+    var pointerRelativeXpos = e.clientX - containerOffsetLeft;
+
+    // Resize box A
+    // * 8px is the left/right spacing between .handler and its inner pseudo-element
+    // * Set flex-grow to 0 to prevent it from growing
+    var width = Math.min(Math.max(dragbarDragging.min, pointerRelativeXpos - 8), dragbarDragging.max);
+    dragbarDragging.boxA.style.width = width + 'px';
+    dragbarDragging.boxA.style.minWidth = width + 'px';
+    dragbarDragging.boxA.style.maxWidth = width + 'px';
+  }
+  else {
+    var containerOffsetTop = dragbarDragging.wrapper.offsetTop;
+    var pointerRelativeYpos = e.clientY - containerOffsetTop;
+    var height = Math.min(Math.max(dragbarDragging.min, pointerRelativeYpos - 8), dragbarDragging.max);
+    dragbarDragging.boxA.style.height = height + 'px';
+    dragbarDragging.boxA.style.minHeight = height + 'px';
+    dragbarDragging.boxA.style.maxHeight = height + 'px';
+  }
+  dragbarDragging.boxA.style.flexGrow = 0;
+});
+
+document.addEventListener('mouseup', function (e) {
+  // Turn off dragging
+  dragbarDragging = null;
+});
+
+document.addEventListener('mousedown', function (e) {
+  // Close autocomplete
+  closeAutocomplete();
+});
