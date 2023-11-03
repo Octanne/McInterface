@@ -268,6 +268,16 @@ class SGRStyle {
       case 22: this.fontWeight = ''; break;
       case 23: this.fontStyle = ''; break;
       case 24: this.underlined = false; break;
+      case 38:
+        // RGB i.e.\x1B[38;2;255;255;255m
+        if (values[1] === 2) {
+          this.textColor = values.slice(2, 5).map(v => v.toString(16).padStart(2, '0')).join('');
+          values.splice(0, 4);
+        }
+        else {
+          console.warn('unknown style', value, values);
+        }
+        break;
       case 39: this.textColor = 0; break;
       case 49: this.bgColor = 0; break;
       case 53: this.overlined = true; break;
@@ -346,7 +356,14 @@ function parseTextToHtml(text) {
   for (let i = 0; i < output.length; i++) {
     var match;
     while (match = output[i].text.match(/\u001b\[(\d+)D/)) {
-      output[i].text = output[i].text.replace(match[0], '\b'.repeat(match[1]));
+      // Add delete character \b (backspace)
+      const nb = parseInt(match[1]);
+      output[i].text = output[i].text.replace(match[0], '\b'.repeat(nb));
+    }
+    while (match = output[i].text.match(/\u001b\[(\d+)C/)) {
+      // Remove delete character (cancel the \b)
+      const nb = parseInt(match[1]);
+      output[i].text = output[i].text.replace('\b'.repeat(nb) + match[0], '');
     }
     while ((match = output[i].text.match(/\x08/))) {
       if (match.index > 0) {
