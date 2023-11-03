@@ -355,15 +355,17 @@ function parseTextToHtml(text) {
   // remove with the backspace (\x08 or \b)
   for (let i = 0; i < output.length; i++) {
     var match;
-    while (match = output[i].text.match(/\u001b\[(\d+)D/)) {
+    while (match = output[i].text.match(/\u001b\[(\d*)D/)) {
       // Add delete character \b (backspace)
-      const nb = parseInt(match[1]);
+      const nb = parseInt(match[1] || '1');
       output[i].text = output[i].text.replace(match[0], '\b'.repeat(nb));
     }
-    while (match = output[i].text.match(/\u001b\[(\d+)C/)) {
+    output[i].text = output[i].text.replace(/\u001bM\u001b\[\d*C/g, '');
+    while (match = output[i].text.match(/\u001b\[(\d*)C/)) {
       // Remove delete character (cancel the \b)
-      const nb = parseInt(match[1]);
-      output[i].text = output[i].text.replace('\b'.repeat(nb) + match[0], '');
+      const nb = parseInt(match[1] || '1');
+      output[i].text = output[i].text.replace('\b'.repeat(nb) + match[0], '')
+        .replace(match[0], ''); // Security for infinite loop
     }
     while ((match = output[i].text.match(/\x08/))) {
       if (match.index > 0) {
@@ -542,7 +544,12 @@ function sendOrder(server, order) {
 }
 
 function sendCommand(server, command) {
-  command = command.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  command = command
+    .replace(/^\//, '')
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/'/g, '\\\'')
+    .replace(/\^/g, '\\^');
 
   $.post("rcon/action.php", { cmd: command, srv: server, odr: 'command' })
     .done(function (json) {
